@@ -13,8 +13,8 @@
   let notes: PouchDB.Core.ExistingDocument<Note>[] = $state([])
   let newNote: string = $state("")
 
-  let username: string = $state("user1")
-  let password: string = $state("12341234")
+  let username: string = $state("")
+  let password: string = $state("")
   let hasSession: boolean = $state(false)
   let loginMessage: string = $state("")
 
