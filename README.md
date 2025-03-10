@@ -5,7 +5,7 @@ A simple, offline-first notes app. Intended as a demo application for [CouchDB M
 
 Pouchnotes allows you to take notes on multiple devices, online or offline, and they will all be synced with each other in real time through a central CouchDB.
 
-The app uses Vite + Svelte + Pico.css + PouchDB.
+The app uses Vite + Svelte 5 + Pico.css + PouchDB.
 
 For simplicity, it does _not_ store a session, so you’ll have to log in every time you reload.
 
@@ -79,3 +79,9 @@ Replace _all_ instances of `YOUR_USERNAME` in all commands with the username you
     ```
 
 You should now have a user, a DB with that user’s name as a suffix, and that user should be a member of that DB. Now when you deploy Pouchnotes to your CouchDB Minihosting instance, you should be able to log in with that user’s credentials and add notes! For more users, just repeat the process with a different username.
+
+## Miscellaneous
+
+- Using PouchDB with Vite required two small extra steps: 
+  1. `$ npm i events`
+  2. Add `define: { global: "window" }` to the `defineConfig` object in `vite.config.ts`
