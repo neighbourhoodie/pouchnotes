@@ -2,12 +2,9 @@
 
 A simple, offline-first notes app. Intended as a demo application for [CouchDB Minihosting](https://github.com/neighbourhoodie/couchdb-minihosting).
 
-
 Pouchnotes allows you to take notes on multiple devices, online or offline, and they will all be synced with each other in real time through a central CouchDB.
 
 The app uses Vite + Svelte 5 + Pico.css + PouchDB.
-
-For simplicity, it does _not_ store a session, so you’ll have to log in every time you reload.
 
 ![screenshot of the pouchnotes app](<pouchnotes_screenshot.png>)
 

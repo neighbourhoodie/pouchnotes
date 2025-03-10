@@ -9,12 +9,12 @@
   PouchDB.plugin(auth);
 
   // Auth vars
-  let username: string = $state("")
+  let username: string | undefined = $state()
   let password: string = $state("")
   let hasSession: boolean = $state(false)
   let loginMessage: string = $state("")
 
-  // A derived store that updates as soon as we have a username. After login, this gives us a database name that includes the username
+  // A derived store that updates as soon as we have a username.
   const databaseName = $derived(`pouchnotes-${username}`)
   const remoteEndpoint = $derived(`${import.meta.env.VITE_LOCAL_COUCHDB_ENDPOINT}/${databaseName}`)
 
@@ -36,11 +36,44 @@
   // The contents of the textarea for adding a new note
   let newNote: string = $state("")
 
-  // We don't know our DB names yet, since they depend on the username, which we only get after login. We prep the empty vars here.
+  // We don't know our DB names yet, since they depend on the username. We prep the empty vars here.
   let localDB: PouchDB.Database<AnyDocumentType>
   let remoteDB: PouchDB.Database<AnyDocumentType>
+
+  onMount(() => {
+    // Check if we‘ve saved the last logged in user’s name
+    username = localStorage.getItem('pouchnotes-currentusername') || undefined
+    getSession()
+    return () => {
+      // Clean up on unmount
+      if (replication) { replication.cancel() }
+      if (changes) { changes.cancel() }
+    }
+  });
   
+  async function getSession() {
+    remoteDB = new PouchDB(remoteEndpoint)
+    let acceptUser = false
+    try {
+      const remoteSession = await remoteDB.getSession()
+      if (remoteSession.userCtx.name) {
+        acceptUser = true
+      } else {
+        // We’re sure that the CouchDB is reachable and that the user has no session, so `acceptUser` stays false and we display the login screen
+      }
+    } catch (error) {
+      console.log('Could not get remote session:', error)
+      // We may be offline, so we should grant the user access to their local DB
+      acceptUser = true
+    }
+    if (acceptUser) {
+      hasSession = true
+      getInitialDataAndStartChangesFeed()
+    }
+  }
+
   async function getInitialDataAndStartChangesFeed(){
+    localDB = new PouchDB(databaseName)
     // Attach the changes listener to the local database
     // We’re typing these all with `Note` because that’s the only type we have
     changes = localDB.changes<AnyDocumentType>({
@@ -72,7 +105,7 @@
     }).on('error', function (err) {
       console.log('Sync error:', err);
     });
-    // Fetch all docs from the local DB
+    // Fetch all existing docs from the local DB
     const allDocsResult = await localDB.allDocs<AnyDocumentType>({include_docs: true})
     // Get all the documents of tyoe `note` and populate our notes store with it. We use `reduce()` to find all documents of the `note` type, this ends up being the cleanest method. Using `map()` and/or `filter()` requires additional hoop-jumping.
     notes = allDocsResult.rows?.reduce(
@@ -83,30 +116,27 @@
         return result
       }, []
     )
-    // Turn on continuous replication between our local PouchDB and the remote CouchDB
-    replication = localDB.sync(remoteEndpoint, {
-      live: true
-    });
-  }
-
-  onMount(() => {
-    return () => {
-      // Clean up on unmount
-      replication.cancel();
-      changes.cancel()
+    // Try to turn on continuous replication between our local PouchDB and the remote CouchDB
+    try {      
+      replication = localDB.sync(remoteEndpoint, {
+        live: true
+      });
+    } catch (error) {
+      console.log('Could not start replication', error)
     }
-  });
+  }
 
   const handleLogin = async (e: SubmitEvent) => {
     e.preventDefault()
     remoteDB = new PouchDB(remoteEndpoint)
+    if (!username || !password) return
     try {
       // Use the `login()` method provided by the `pouchdb-authentication` plugin to auth with the remote CouchDB
       const loginResponse = await remoteDB.logIn(username, password)
       if (loginResponse.ok) {
         hasSession = true
-        // Now that we have the username, we can instantiate the local DB
-        localDB = new PouchDB(databaseName)
+        // Store the current username so we can find their DB again
+        localStorage.setItem('pouchnotes-currentusername', username)
         getInitialDataAndStartChangesFeed()
       }
     } catch (error: any) {
@@ -136,6 +166,14 @@
     }
   }
 
+  const handleLogout = async () => {
+    const logoutResponse = await remoteDB.logOut()
+    if (logoutResponse.ok) {
+      localStorage.removeItem('pouchnotes-currentusername')
+      hasSession = false
+    }
+  }
+
   const formatDate = (ISODateString: string) => {
     return new Intl.DateTimeFormat("en-UK", {
       dateStyle: "medium", 
@@ -145,6 +183,16 @@
 
 </script>
 
+{#if hasSession}
+<nav>
+  <ul></ul>
+  <ul>
+    <li>
+      <button class="logout outline" onclick={() => handleLogout()}>Log out 👋</button>
+    </li>
+  </ul>
+</nav>
+{/if}
 <main>
   <h1>Pouchnotes</h1>
   <p>A simple, offline-first notes app. Intended as a demo application for <a href="https://github.com/neighbourhoodie/couchdb-minihosting">CouchDB Minihosting</a>. Find out more about Pouchnotes at the <a href="https://github.com/neighbourhoodie/pouchnotes">GitHub repo</a>.</p>

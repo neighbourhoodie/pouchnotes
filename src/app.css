@@ -24,6 +24,7 @@ a:hover {
 
 body {
   margin: 0;
+  padding: 0 1rem;
   display: flex;
   place-items: center;
   min-width: 320px;
@@ -36,10 +37,10 @@ h1 {
 }
 
 #app {
+  padding: 0 1rem;
   max-width: 30rem;
   width: 100%;
   margin: 0 auto;
-  padding: 2rem;
 }
 
 @media (prefers-color-scheme: light) {
