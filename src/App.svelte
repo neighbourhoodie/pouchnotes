@@ -60,6 +60,8 @@
         acceptUser = true
       } else {
         // We’re sure that the CouchDB is reachable and that the user has no session, so `acceptUser` stays false and we display the login screen
+        // We also clear the current username from localStorage, to prevent the user from accessing any local database through the app.
+        localStorage.removeItem('pouchnotes-currentusername')
       }
     } catch (error) {
       console.log('Could not get remote session:', error)
@@ -107,7 +109,7 @@
     });
     // Fetch all existing docs from the local DB
     const allDocsResult = await localDB.allDocs<AnyDocumentType>({include_docs: true})
-    // Get all the documents of tyoe `note` and populate our notes store with it. We use `reduce()` to find all documents of the `note` type, this ends up being the cleanest method. Using `map()` and/or `filter()` requires additional hoop-jumping.
+    // Get all the documents of type `note` and populate our notes store with it. We use `reduce()` to find all documents of the `note` type, this ends up being the cleanest method. Using `map()` and/or `filter()` requires additional hoop-jumping.
     notes = allDocsResult.rows?.reduce(
       (result: PouchDB.Core.ExistingDocument<Note>[], row) => {
         if(row.doc?.type === 'note') {
@@ -117,7 +119,7 @@
       }, []
     )
     // Try to turn on continuous replication between our local PouchDB and the remote CouchDB
-    try {      
+    try {
       replication = localDB.sync(remoteEndpoint, {
         live: true
       });
