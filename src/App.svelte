@@ -121,7 +121,11 @@
     // Try to turn on continuous replication between our local PouchDB and the remote CouchDB
     try {
       replication = localDB.sync(remoteEndpoint, {
-        live: true
+        live: true,
+        retry: true
+      })
+      replication.on('error', function (err) {
+        console.log('Unexpected replication error', err)
       });
     } catch (error) {
       console.log('Could not start replication', error)
